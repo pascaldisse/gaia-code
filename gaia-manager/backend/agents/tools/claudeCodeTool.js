@@ -73,7 +73,19 @@ class ClaudeCodeTool {
         }
         
         // Auto-respond to confirmations - expanded pattern to catch more prompts
-        const confirmationPattern = /\[Y\/n\]|\(Y\/n\)|yes\/no|confirm|continue\?|Do you want to|Would you like|❯ Yes/i;
+        const confirmationPattern = /\[Y\/n\]|\(Y\/n\)|yes\/no|confirm|continue\?|Do you want to|Would you like|❯ Yes|needs your permission/i;
+        
+        // Check if this is a Claude permission dialog
+        if (text.includes(']9; Claude needs your permission') || text.includes('Do you want to create')) {
+          this.logActivity('info', 'Auto-confirming Claude permission dialog with "y"');
+          claudeProcess.stdin.write('y\n');
+          // Sometimes needs multiple confirmations, so send again after a delay
+          setTimeout(() => {
+            claudeProcess.stdin.write('y\n');
+          }, 500);
+          return;
+        }
+        
         if (confirmationPattern.test(text)) {
           this.logActivity('info', 'Auto-confirming Claude prompt with "yes"');
           claudeProcess.stdin.write('yes\n');

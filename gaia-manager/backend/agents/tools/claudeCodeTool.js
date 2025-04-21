@@ -77,18 +77,32 @@ class ClaudeCodeTool {
         
         // Check if this is a Claude permission dialog
         if (text.includes(']9; Claude needs your permission') || text.includes('Do you want to create')) {
-          this.logActivity('info', 'Auto-confirming Claude permission dialog with "y"');
-          claudeProcess.stdin.write('y\n');
-          // Sometimes needs multiple confirmations, so send again after a delay
+          this.logActivity('info', 'Auto-confirming Claude permission dialog with Enter key');
+          
+          // First try just pressing Enter (which selects the default Yes option)
+          claudeProcess.stdin.write('\n');
+          
+          // Then try y + Enter as a backup
           setTimeout(() => {
             claudeProcess.stdin.write('y\n');
-          }, 500);
+          }, 300);
+          
+          // Finally try "Yes, and don't ask again" option (sending down arrow + Enter)
+          setTimeout(() => {
+            claudeProcess.stdin.write('\u001B[B\n'); // Down arrow + Enter
+          }, 600);
+          
           return;
         }
         
         if (confirmationPattern.test(text)) {
           this.logActivity('info', 'Auto-confirming Claude prompt with "yes"');
           claudeProcess.stdin.write('yes\n');
+          
+          // Also try just Enter key as a backup
+          setTimeout(() => {
+            claudeProcess.stdin.write('\n');
+          }, 300);
         }
       });
       

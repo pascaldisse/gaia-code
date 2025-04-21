@@ -119,7 +119,25 @@ class ClaudeCodeTool {
         claudeProcess.stdin.end();
       }
       
+      // Handle confirmation check at regular intervals
+      const confirmationInterval = setInterval(() => {
+        // Look for any pending confirmation dialogs in the output
+        if (outputData.includes('needs your permission') || 
+            outputData.includes('Do you want to create') ||
+            outputData.includes('❯ Yes')) {
+          
+          this.logActivity('info', 'Detected pending confirmation dialog - sending Enter key');
+          claudeProcess.stdin.write('\n');
+          
+          // Additional backup attempts
+          setTimeout(() => claudeProcess.stdin.write('y\n'), 300);
+          setTimeout(() => claudeProcess.stdin.write('\u001B[B\n'), 600); // Down arrow + Enter
+        }
+      }, 2000); // Check every 2 seconds
+      
       claudeProcess.on('close', (code) => {
+        // Clear the confirmation interval when process ends
+        clearInterval(confirmationInterval);
         if (code === 0) {
           this.logActivity('info', 'Claude process completed successfully');
           resolve(outputData);

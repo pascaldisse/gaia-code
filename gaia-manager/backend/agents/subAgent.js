@@ -6,7 +6,7 @@ class SubAgent {
     this.id = id;
     this.io = io;
     this.gitTool = gitTool;
-    this.claudeCodeTool = new ClaudeCodeTool();
+    this.claudeCodeTool = new ClaudeCodeTool(io, id);
   }
 
   async executeTask(task) {
@@ -32,7 +32,7 @@ class SubAgent {
         message: `Task completed successfully on branch ${branchName}`
       };
     } catch (error) {
-      console.error(`Agent ${this.id} task error:`, error);
+      this.updateProgress(task.id, `Task error: ${error.message}`, 'error');
       return {
         success: false,
         error: error.message
@@ -49,21 +49,22 @@ class SubAgent {
       this.updateProgress('claude', `Received response from Claude`);
       return result;
     } catch (error) {
-      this.updateProgress('claude', `Error from Claude: ${error.message}`);
+      this.updateProgress('claude', `Error from Claude: ${error.message}`, 'error');
       throw error;
     }
   }
 
-  updateProgress(taskId, message) {
+  updateProgress(taskId, message, level = 'info') {
     const progressUpdate = {
       agentId: this.id,
       taskId,
       message,
+      level,
       timestamp: new Date()
     };
     
     this.io.emit('agent:progress', progressUpdate);
-    console.log(`[Agent ${this.id}] ${message}`);
+    console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[Agent ${this.id}] ${message}`);
   }
 }
 

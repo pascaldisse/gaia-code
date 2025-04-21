@@ -48,7 +48,7 @@ function AgentStatus({ agents }) {
                         {agent.status}
                       </span>
                       
-                      {agent.currentTask && (
+                      {agent.currentTask && agent.currentTask.description && (
                         <span className="text-xs text-gray-500">
                           Working on: {agent.currentTask.description.substring(0, 30)}
                           {agent.currentTask.description.length > 30 ? '...' : ''}

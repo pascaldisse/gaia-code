@@ -4,6 +4,7 @@ import axios from 'axios';
 import TaskList from './components/TaskList';
 import AgentStatus from './components/AgentStatus';
 import TaskForm from './components/TaskForm';
+import ActivityLog from './components/ActivityLog';
 import { FaGithub, FaRobot } from 'react-icons/fa';
 
 // API and WebSocket URL
@@ -133,20 +134,7 @@ function App() {
             
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4">Activity Log</h2>
-              <div className="h-96 overflow-y-auto">
-                {progress.map((update, index) => (
-                  <div key={index} className="text-sm mb-2 pb-2 border-b">
-                    <div className="flex justify-between text-gray-500">
-                      <span>Agent {update.agentId}</span>
-                      <span>{new Date(update.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <p>{update.message}</p>
-                  </div>
-                ))}
-                {progress.length === 0 && (
-                  <p className="text-gray-500 italic">No activity yet</p>
-                )}
-              </div>
+              <ActivityLog logs={progress} />
             </div>
           </div>
         </div>

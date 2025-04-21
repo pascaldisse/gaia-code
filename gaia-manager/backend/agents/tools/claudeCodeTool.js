@@ -72,8 +72,8 @@ class ClaudeCodeTool {
           claudeProcess.stdin.write(taskDescription + '\n');
         }
         
-        // Auto-respond to confirmations
-        const confirmationPattern = /\[Y\/n\]|\(Y\/n\)|yes\/no|confirm|continue\?/i;
+        // Auto-respond to confirmations - expanded pattern to catch more prompts
+        const confirmationPattern = /\[Y\/n\]|\(Y\/n\)|yes\/no|confirm|continue\?|Do you want to|Would you like|❯ Yes/i;
         if (confirmationPattern.test(text)) {
           this.logActivity('info', 'Auto-confirming Claude prompt with "yes"');
           claudeProcess.stdin.write('yes\n');

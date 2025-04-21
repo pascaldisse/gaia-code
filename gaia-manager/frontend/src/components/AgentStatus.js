@@ -50,8 +50,21 @@ function AgentStatus({ agents }) {
                       
                       {agent.currentTask && agent.currentTask.description && (
                         <span className="text-xs text-gray-500">
-                          Working on: {agent.currentTask.description.substring(0, 30)}
-                          {agent.currentTask.description.length > 30 ? '...' : ''}
+                          Working on: {
+                            (() => {
+                              try {
+                                if (typeof agent.currentTask.description === 'string') {
+                                  return agent.currentTask.description.substring(0, 30) + 
+                                    (agent.currentTask.description.length > 30 ? '...' : '');
+                                } else {
+                                  return String(agent.currentTask.description).substring(0, 30) + 
+                                    (String(agent.currentTask.description).length > 30 ? '...' : '');
+                                }
+                              } catch (e) {
+                                return '[Task description unavailable]';
+                              }
+                            })()
+                          }
                         </span>
                       )}
                     </div>

@@ -1,4 +1,4 @@
-# Gaia Manager
+# Gaia Code
 
 A web application that uses LangChain with Claude Code agents to work on git projects.
 

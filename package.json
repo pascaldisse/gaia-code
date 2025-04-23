@@ -1,7 +1,7 @@
 {
-  "name": "gaia-manager",
+  "name": "gaia-code",
   "version": "1.0.0",
-  "description": "A web application that uses LangChain with Claude Code agents to work on git projects",
+  "description": "A code editor and task manager that uses LangChain with Claude Code agents to work on git projects",
   "main": "index.js",
   "scripts": {
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",

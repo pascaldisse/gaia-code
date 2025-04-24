@@ -139,8 +139,8 @@ const main = async () => {
   console.log(chalk.yellow('1. Get a DeepInfra API key from https://deepinfra.com/dash'));
   console.log(chalk.yellow('2. Get a DeepSeek API key from https://platform.deepseek.com'));
   console.log(chalk.yellow('3. Update your api_keys.json file or set using:'));
-  console.log(chalk.yellow('   ./gaia-code-new.js --set-deepinfra-key YOUR_API_KEY'));
-  console.log(chalk.yellow('   ./gaia-code-new.js --set-deepseek-key YOUR_API_KEY'));
+  console.log(chalk.yellow('   ./gaia-code.js --set-deepinfra-key YOUR_API_KEY'));
+  console.log(chalk.yellow('   ./gaia-code.js --set-deepseek-key YOUR_API_KEY'));
 };
 
 // Run the main function

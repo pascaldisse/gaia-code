@@ -5,8 +5,7 @@
   "main": "index.js",
   "type": "module",
   "bin": {
-    "gaia-code": "./gaia-code.js",
-    "gaia-code-new": "./gaia-code-new.js"
+    "gaia-code": "./gaia-code.js"
   },
   "scripts": {
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
@@ -16,7 +15,6 @@
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
     "restart": "bash -c 'kill $(lsof -t -i:3001) $(lsof -t -i:3002) 2>/dev/null || true && npm start'",
     "cli": "node gaia-code.js",
-    "cli:new": "node gaia-code-new.js",
     "build:cli": "cd gaiascript && node build-gaia-code.js",
     "test": "jest",
     "lint": "eslint *.js",

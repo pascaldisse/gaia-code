@@ -44,9 +44,11 @@ if (!fs.existsSync(CONFIG_DIR)) {
 // Default model options
 const MODELS = {
   deepinfra: {
-    llama3_70b: 'meta-llama/Meta-Llama-3-70B-Instruct',
-    llama3_8b: 'meta-llama/Meta-Llama-3-8B-Instruct',
+    llama3_70b: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+    llama3_8b: 'meta-llama/Meta-Llama-3.1-8B-Instruct',
     mistral: 'mistralai/Mistral-7B-Instruct-v0.2',
+    deepseek_v3: 'deepseek-ai/DeepSeek-V3',
+    gemini_flash: 'google/gemini-1.5-flash',
   },
   deepseek: {
     deepseek_coder_v3: 'deepseek-ai/deepseek-coder-v3',
@@ -57,10 +59,10 @@ const MODELS = {
 // Load or initialize settings
 const loadSettings = () => {
   let settings = {
-    deepInfraApiKey: process.env.DEEPINFRA_API_KEY || '',
-    deepSeekApiKey: process.env.DEEPSEEK_API_KEY || '',
-    defaultModel: 'deepseek_coder_v3',
-    defaultProvider: 'deepseek',
+    deepInfraApiKey: '',
+    deepSeekApiKey: '',
+    defaultModel: 'llama3_70b',
+    defaultProvider: 'deepinfra',
     theme: 'dark',
     maxHistoryLength: 50,
     showSystemPrompts: false,
@@ -76,12 +78,30 @@ const loadSettings = () => {
     }
   }
   
-  // Load API keys from api_keys.json if it exists
+  // Load API keys from environment variables
+  if (process.env.DEEPINFRA_API_KEY) {
+    settings.deepInfraApiKey = process.env.DEEPINFRA_API_KEY;
+    console.log(chalk.green('Loaded DeepInfra API key from environment variable'));
+  }
+  
+  if (process.env.DEEPSEEK_API_KEY) {
+    settings.deepSeekApiKey = process.env.DEEPSEEK_API_KEY;
+    console.log(chalk.green('Loaded DeepSeek API key from environment variable'));
+  }
+  
+  // Load API keys from api_keys.json if it exists and no env vars set
   if (fs.existsSync(API_KEYS_FILE)) {
     try {
       const apiKeys = JSON.parse(fs.readFileSync(API_KEYS_FILE, 'utf8'));
-      if (apiKeys.deepinfra) settings.deepInfraApiKey = apiKeys.deepinfra;
-      if (apiKeys.deepseek) settings.deepSeekApiKey = apiKeys.deepseek;
+      if (apiKeys.deepinfra && !settings.deepInfraApiKey) {
+        settings.deepInfraApiKey = apiKeys.deepinfra;
+        console.log(chalk.green('Loaded DeepInfra API key from api_keys.json'));
+      }
+      
+      if (apiKeys.deepseek && !settings.deepSeekApiKey) {
+        settings.deepSeekApiKey = apiKeys.deepseek;
+        console.log(chalk.green('Loaded DeepSeek API key from api_keys.json'));
+      }
     } catch (error) {
       console.error(chalk.red('Error reading API keys file:'), error.message);
     }
@@ -176,6 +196,16 @@ For DeepSeek Coder model: Leverage your specialized knowledge of programming lan
     ];
 
     console.log(chalk.blue(`\nSending request to ${provider.charAt(0).toUpperCase() + provider.slice(1)} API using model: ${modelKey}...`));
+    console.log(chalk.blue(`Model Name: ${modelName}`));
+    
+    // Debug log API keys (with partial masking)
+    const apiKey = provider === 'deepinfra' ? settings.deepInfraApiKey : settings.deepSeekApiKey;
+    if (apiKey) {
+      const maskedKey = apiKey.substring(0, 4) + '*'.repeat(apiKey.length - 8) + apiKey.substring(apiKey.length - 4);
+      console.log(chalk.blue(`Using API key: ${maskedKey}`));
+    } else {
+      console.log(chalk.red(`No API key found for ${provider}`));
+    }
     
     let response;
     const apiConfig = {
@@ -188,28 +218,69 @@ For DeepSeek Coder model: Leverage your specialized knowledge of programming lan
       'Content-Type': 'application/json',
     };
 
-    // Make API request based on provider
+    // Add API key to headers
     if (provider === 'deepinfra') {
       apiHeaders['Authorization'] = `Bearer ${settings.deepInfraApiKey}`;
+      console.log(chalk.blue(`API Endpoint: https://api.deepinfra.com/v1/openai/chat/completions`));
+    } else {
+      apiHeaders['Authorization'] = `Bearer ${settings.deepSeekApiKey}`;
+      console.log(chalk.blue(`API Endpoint: https://api.deepseek.com/v1/chat/completions`));
+    }
+    
+    // Debug log - API request
+    console.log(chalk.yellow('API Request Configuration:'));
+    console.log(chalk.yellow(`- Model: ${modelName}`));
+    console.log(chalk.yellow(`- Temperature: ${apiConfig.temperature}`));
+    console.log(chalk.yellow(`- Max Tokens: ${apiConfig.max_tokens}`));
+    console.log(chalk.yellow(`- Messages: ${messages.length} messages`));
+
+    // Make API request based on provider
+    if (provider === 'deepinfra') {
+      console.log(chalk.blue('Sending request to DeepInfra API...'));
+      
+      const requestConfig = {
+        ...apiConfig,
+        model: modelName,
+      };
+      
       response = await axios.post(
         'https://api.deepinfra.com/v1/openai/chat/completions',
-        {
-          ...apiConfig,
-          model: modelName,
-        },
+        requestConfig,
         { headers: apiHeaders }
       );
     } else {
-      apiHeaders['Authorization'] = `Bearer ${settings.deepSeekApiKey}`;
-      response = await axios.post(
-        'https://api.deepseek.com/v1/chat/completions',
-        {
-          ...apiConfig,
-          model: modelName,
-        },
-        { headers: apiHeaders }
-      );
+      console.log(chalk.blue('Sending request to DeepSeek API...'));
+      
+      const requestConfig = {
+        ...apiConfig,
+        model: modelName,
+      };
+      
+      // DeepSeek's API could be at api.deepseek.com or platform.deepseek.com
+      try {
+        response = await axios.post(
+          'https://api.deepseek.com/v1/chat/completions',
+          requestConfig,
+          { headers: apiHeaders }
+        );
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          console.log(chalk.yellow('API endpoint not found, trying platform.deepseek.com...'));
+          response = await axios.post(
+            'https://platform.deepseek.com/api/v1/chat/completions',
+            requestConfig,
+            { headers: apiHeaders }
+          );
+        } else {
+          throw error;
+        }
+      }
     }
+    
+    // Debug log - API response
+    console.log(chalk.green('API Response received:'));
+    console.log(chalk.green(`- Status: ${response.status}`));
+    console.log(chalk.green(`- Headers: ${JSON.stringify(response.headers)}`));
     
     // Extract the response
     const assistantMessage = response.data.choices[0].message.content;
@@ -224,14 +295,43 @@ For DeepSeek Coder model: Leverage your specialized knowledge of programming lan
       content: assistantMessage
     };
   } catch (error) {
+    console.error(chalk.red('An error occurred:'));
+    
     if (error.response) {
       console.error(chalk.red(`API Error: ${error.response.status}`));
+      console.error(chalk.red(`Full error: ${JSON.stringify(error.response.data)}`));
       console.error(chalk.red(error.response.data.error?.message || 'Unknown API error'));
+      
+      // Log more details for debugging
+      console.error(chalk.yellow('Error details:'));
+      console.error(chalk.yellow(`- Status: ${error.response.status}`));
+      console.error(chalk.yellow(`- Status Text: ${error.response.statusText}`));
+      console.error(chalk.yellow(`- Headers: ${JSON.stringify(error.response.headers)}`));
+      
+      if (error.response.config) {
+        console.error(chalk.yellow('Request details:'));
+        console.error(chalk.yellow(`- URL: ${error.response.config.url}`));
+        console.error(chalk.yellow(`- Method: ${error.response.config.method}`));
+        console.error(chalk.yellow(`- Headers: ${JSON.stringify(error.response.config.headers)}`));
+        
+        // Safely mask any API keys in the output
+        if (error.response.config.headers?.Authorization) {
+          const authHeader = error.response.config.headers.Authorization;
+          if (authHeader.startsWith('Bearer ')) {
+            const apiKey = authHeader.substring(7);
+            const maskedKey = apiKey.substring(0, 4) + '*'.repeat(apiKey.length - 8) + apiKey.substring(apiKey.length - 4);
+            console.error(chalk.yellow(`- Authorization: Bearer ${maskedKey}`));
+          }
+        }
+      }
     } else if (error.request) {
       console.error(chalk.red('Network Error: Could not connect to API'));
+      console.error(chalk.yellow('Request details:'));
+      console.error(chalk.yellow(error.request));
     } else {
       console.error(chalk.red(`Error: ${error.message}`));
     }
+    
     return {
       success: false,
       error: error.message
